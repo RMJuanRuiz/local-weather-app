@@ -1,9 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core'
+import { Component, inject } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatIconModule } from '@angular/material/icon'
 import { MatInputModule } from '@angular/material/input'
-import { debounceTime } from 'rxjs'
+import { debounceTime, filter, tap } from 'rxjs'
 
 import { WeatherService } from '../weather/weather.service'
 
@@ -20,28 +21,34 @@ import { WeatherService } from '../weather/weather.service'
     MatIconModule,
   ],
 })
-export class CitySearchComponent implements OnInit {
+export class CitySearchComponent {
   weatherService = inject(WeatherService)
 
-  search = new FormControl('', [Validators.minLength(2)])
+  search = new FormControl('', [Validators.required, Validators.minLength(2)])
 
-  ngOnInit(): void {
+  constructor() {
     this.search.valueChanges
-      .pipe(debounceTime(1000))
-      .subscribe((searchValue: string | null) => {
-        if (!this.search.invalid && searchValue) {
-          const userInput = searchValue.split(',').map((s) => s.trim())
-          this.weatherService.updateCurrentWeather(
-            userInput[0],
-            userInput.length > 1 ? userInput[1] : undefined
-          )
-        }
-      })
+      .pipe(
+        filter(() => this.search.valid),
+        debounceTime(1000),
+        tap((searchValue) => this.doSearch(searchValue)),
+        takeUntilDestroyed()
+      )
+      .subscribe()
   }
 
   getErrorMessage(): string {
     return this.search.hasError('minlength')
       ? 'Type more than one character to search'
       : ''
+  }
+
+  private doSearch(searchValue: string | null): void {
+    if (searchValue === null) return
+    const userInput = searchValue.split(',').map((s) => s.trim())
+    const searchText = userInput[0]
+    const country = userInput.length > 1 ? userInput[1] : undefined
+
+    this.weatherService.updateCurrentWeather(searchText, country)
   }
 }
