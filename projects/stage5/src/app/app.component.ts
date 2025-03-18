@@ -3,8 +3,8 @@ import { MatCardModule } from '@angular/material/card'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { FlexModule } from '@ngbracket/ngx-layout/flex'
 
+import { CitySearchComponent } from './city-search/city-search.component'
 import { CurrentWeatherComponent } from './current-weather/current-weather.component'
-
 @Component({
   selector: 'app-root',
   template: `
@@ -14,6 +14,9 @@ import { CurrentWeatherComponent } from './current-weather/current-weather.compo
       </mat-toolbar>
       <div fxLayoutAlign="center">
         <div class="mat-caption v-pad">Your city, your forecast, right now!</div>
+      </div>
+      <div fxLayoutAlign="center">
+        <app-city-search></app-city-search>
       </div>
       <div fxLayout="row">
         <div fxFlex></div>
@@ -32,6 +35,12 @@ import { CurrentWeatherComponent } from './current-weather/current-weather.compo
     </div>
   `,
   standalone: true,
-  imports: [FlexModule, CurrentWeatherComponent, MatToolbarModule, MatCardModule],
+  imports: [
+    FlexModule,
+    CurrentWeatherComponent,
+    MatToolbarModule,
+    MatCardModule,
+    CitySearchComponent,
+  ],
 })
 export class AppComponent {}
