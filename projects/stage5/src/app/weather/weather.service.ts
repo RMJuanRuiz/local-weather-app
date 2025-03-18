@@ -1,10 +1,11 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
 import { BehaviorSubject, Observable } from 'rxjs'
-import { first, map } from 'rxjs/operators'
+import { first, map, switchMap } from 'rxjs/operators'
 
 import { environment } from '../../environments/environment'
 import { ICurrentWeather } from '../interfaces'
+import { defaultPostalCode, PostalCodeService } from '../postal-code/postal-code.service'
 
 interface ICurrentWeatherData {
   weather: [
@@ -25,7 +26,7 @@ interface ICurrentWeatherData {
 
 export interface IWeatherService {
   readonly currentWeather$: BehaviorSubject<ICurrentWeather>
-  updateCurrentWeather(search: string | number, country?: string): void
+  updateCurrentWeather(search: string, country?: string): void
 }
 
 @Injectable({
@@ -41,27 +42,37 @@ export class WeatherService implements IWeatherService {
     description: '',
   })
 
-  constructor(private httpClient: HttpClient) {}
+  constructor(
+    private httpClient: HttpClient,
+    private postalCodeService: PostalCodeService
+  ) {}
 
-  updateCurrentWeather(search: string | number, country?: string): void {
+  updateCurrentWeather(search: string, country?: string): void {
     this.getCurrentWeather(search, country)
       .pipe(first())
       .subscribe((weather) => this.currentWeather$.next(weather))
   }
 
   private getCurrentWeather(
-    search: string | number,
+    searchText: string,
     country?: string
   ): Observable<ICurrentWeather> {
-    let uriParams = new HttpParams()
-
-    if (typeof search === 'string') {
-      uriParams = uriParams.set('q', country ? `${search},${country}` : search)
-    } else {
-      uriParams = uriParams.set('zip', search)
-    }
-
-    return this.getCurrentWeatherHelper(uriParams)
+    return this.postalCodeService.resolvePostalCode(searchText).pipe(
+      switchMap((postalCode) => {
+        if (postalCode && postalCode !== defaultPostalCode) {
+          return this.getCurrentWeatherByCoords({
+            latitude: postalCode.lat,
+            longitude: postalCode.lng,
+          } as GeolocationCoordinates)
+        } else {
+          const uriParams = new HttpParams().set(
+            'q',
+            country ? `${searchText},${country}` : searchText
+          )
+          return this.getCurrentWeatherHelper(uriParams)
+        }
+      })
+    )
   }
 
   private getCurrentWeatherByCoords(
