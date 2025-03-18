@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
-import { Injectable } from '@angular/core'
-import { BehaviorSubject, Observable } from 'rxjs'
-import { first, map, switchMap } from 'rxjs/operators'
+import { Injectable, signal, WritableSignal } from '@angular/core'
+import { firstValueFrom, Observable } from 'rxjs'
+import { map, switchMap } from 'rxjs/operators'
 
 import { environment } from '../../environments/environment'
 import { ICurrentWeather } from '../interfaces'
@@ -25,32 +25,34 @@ interface ICurrentWeatherData {
 }
 
 export interface IWeatherService {
-  readonly currentWeather$: BehaviorSubject<ICurrentWeather>
-  updateCurrentWeather(search: string, country?: string): void
+  readonly currentWeatherSignal: WritableSignal<ICurrentWeather>
+  updateCurrentWeatherSignal(search: string, country?: string): Promise<void>
+}
+
+export const defaultWeather: ICurrentWeather = {
+  city: '--',
+  country: '--',
+  date: Date.now(),
+  image: '',
+  temperature: 0,
+  description: '',
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class WeatherService implements IWeatherService {
-  readonly currentWeather$ = new BehaviorSubject<ICurrentWeather>({
-    city: '--',
-    country: '--',
-    date: Date.now(),
-    image: '',
-    temperature: 0,
-    description: '',
-  })
+  readonly currentWeatherSignal = signal(defaultWeather)
 
   constructor(
     private httpClient: HttpClient,
     private postalCodeService: PostalCodeService
   ) {}
 
-  updateCurrentWeather(search: string, country?: string): void {
-    this.getCurrentWeather(search, country)
-      .pipe(first())
-      .subscribe((weather) => this.currentWeather$.next(weather))
+  async updateCurrentWeatherSignal(searchText: string, country?: string): Promise<void> {
+    this.currentWeatherSignal.set(
+      await this.getCurrentWeatherAsPromise(searchText, country)
+    )
   }
 
   private getCurrentWeather(
@@ -83,6 +85,13 @@ export class WeatherService implements IWeatherService {
       .set('lon', coords.longitude.toString())
 
     return this.getCurrentWeatherHelper(uriParams)
+  }
+
+  private getCurrentWeatherAsPromise(
+    searchText: string,
+    country?: string
+  ): Promise<ICurrentWeather> {
+    return firstValueFrom(this.getCurrentWeather(searchText, country))
   }
 
   private transformToICurrentWeather(data: ICurrentWeatherData): ICurrentWeather {

@@ -1,7 +1,6 @@
 import { AsyncPipe, DatePipe, DecimalPipe } from '@angular/common'
-import { Component } from '@angular/core'
+import { Component, WritableSignal } from '@angular/core'
 import { FlexModule } from '@ngbracket/ngx-layout/flex'
-import { Observable } from 'rxjs'
 
 import { ICurrentWeather } from '../interfaces'
 import { WeatherService } from '../weather/weather.service'
@@ -14,10 +13,10 @@ import { WeatherService } from '../weather/weather.service'
   imports: [FlexModule, DecimalPipe, DatePipe, AsyncPipe],
 })
 export class CurrentWeatherComponent {
-  current$: Observable<ICurrentWeather>
+  currentSignal: WritableSignal<ICurrentWeather>
 
   constructor(private weatherService: WeatherService) {
-    this.current$ = this.weatherService.currentWeather$
+    this.currentSignal = this.weatherService.currentWeatherSignal
   }
 
   getOrdinal(date: number) {
