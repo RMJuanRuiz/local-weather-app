@@ -31,12 +31,10 @@ export class CitySearchComponent implements OnInit {
       .subscribe((searchValue: string | null) => {
         if (!this.search.invalid && searchValue) {
           const userInput = searchValue.split(',').map((s) => s.trim())
-          this.weatherService
-            .getCurrentWeather(
-              userInput[0],
-              userInput.length > 1 ? userInput[1] : undefined
-            )
-            .subscribe((data) => console.log(data))
+          this.weatherService.updateCurrentWeather(
+            userInput[0],
+            userInput.length > 1 ? userInput[1] : undefined
+          )
         }
       })
   }
